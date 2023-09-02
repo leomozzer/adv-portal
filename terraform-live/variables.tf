@@ -13,3 +13,20 @@ variable "location_short" {
 variable "environment" {
   type = string
 }
+
+variable "network_vnet_cidr" {
+  type        = list(string)
+  description = "The CIDR of the network VNET"
+  default = [
+    "10.128.0.0/24"
+  ]
+}
+
+variable "network_subnet_cidr" {
+  type        = list(string)
+  description = "The CIDR for the network subnet"
+  default = [
+    "10.128.0.0/24"
+  ]
+}
+
