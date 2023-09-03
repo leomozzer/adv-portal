@@ -1,14 +1,3 @@
-locals {
-  resource_group_name                                  = "rg-${var.location_short}-${var.app_name}-01"
-  virtual_network_name                                 = "vnet-${var.location_short}-${var.app_name}-01"
-  virtual_network_subnet_desktop_name                  = "snet-desktop"
-  virtual_desktop_workspace_name                       = "ws-${var.location_short}-${var.app_name}-01"
-  virtual_desktop_workspace_friendly_name              = "AVD Workspace"
-  virtual_desktop_host_pool_name                       = "hostpool-${var.location_short}-${var.app_name}-01"
-  virtual_desktop_host_pool_registration_info_duration = "24h"
-  azurerm_virtual_desktop_application_group_name       = "appgroup-${var.location_short}-${var.app_name}-01"
-}
-
 resource "azurerm_resource_group" "resource_group" {
   name     = local.resource_group_name
   location = var.location
@@ -16,27 +5,6 @@ resource "azurerm_resource_group" "resource_group" {
     "Environment" : var.environment
   }
 }
-
-resource "azurerm_virtual_network" "network_vnet" {
-  name                = local.virtual_network_name
-  address_space       = [var.network_vnet_cidr[0]]
-  resource_group_name = azurerm_resource_group.resource_group.name
-  location            = var.location
-}
-
-# Create a subnet for VM
-resource "azurerm_subnet" "desktop_subnet" {
-  name                 = local.virtual_network_subnet_desktop_name
-  address_prefixes     = [var.network_subnet_cidr[0]]
-  virtual_network_name = azurerm_virtual_network.network_vnet.name
-  resource_group_name  = azurerm_resource_group.resource_group.name
-}
-
-#set DNS 
-# resource "azurerm_virtual_network_dns_servers" "DNS_CUSTOM" {
-#   virtual_network_id = azurerm_virtual_network.network_vnet.id
-#   dns_servers        = [var.ad_dc1_ip_address]
-# }
 
 # Create AVD workspace
 resource "azurerm_virtual_desktop_workspace" "workspace" {
@@ -79,4 +47,29 @@ resource "azurerm_virtual_desktop_application_group" "dag" {
 resource "azurerm_virtual_desktop_workspace_application_group_association" "ws-dag" {
   application_group_id = azurerm_virtual_desktop_application_group.dag.id
   workspace_id         = azurerm_virtual_desktop_workspace.workspace.id
+}
+
+resource "azurerm_key_vault" "avd-kv" {
+  name                       = local.avd_key_vault_name
+  location                   = azurerm_resource_group.resource_group.location
+  resource_group_name        = azurerm_resource_group.resource_group.name
+  tenant_id                  = data.azurerm_client_config.current.tenant_id
+  sku_name                   = "premium"
+  soft_delete_retention_days = 7
+
+  access_policy {
+    tenant_id = data.azurerm_client_config.current.tenant_id
+    object_id = data.azurerm_client_config.current.object_id
+    secret_permissions = [
+      "Set",
+      "Restore",
+      "Delete"
+    ]
+  }
+}
+
+resource "azurerm_key_vault_secret" "secret-registrationinfo" {
+  name         = "registrationinfo"
+  value        = azurerm_virtual_desktop_host_pool_registration_info.registrationinfo.token
+  key_vault_id = azurerm_key_vault.avd-kv
 }
