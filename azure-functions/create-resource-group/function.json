@@ -1,0 +1,12 @@
+{
+  "bindings": [
+    {
+      "name": "myQueueItem",
+      "type": "queueTrigger",
+      "direction": "in",
+      "queueName": "create-rg",
+      "connection": ""
+    }
+  ],
+  "scriptFile": "../dist/create-resource-group/index.js"
+}
