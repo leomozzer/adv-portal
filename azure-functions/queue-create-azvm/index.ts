@@ -42,10 +42,10 @@ const QueueCreateAzVm: AzureFunction = async function (context: Context, myQueue
             },
             osType: 'Windows',
         };
-        const vm = await computeClient.virtualMachines.beginCreateOrUpdateAndWait(myQueueItem['resourceGroupName'], myQueueItem['vmName'], vmConfig);
+        await computeClient.virtualMachines.beginCreateOrUpdateAndWait(myQueueItem['resourceGroupName'], myQueueItem['vmName'], vmConfig);
     } catch (error) {
         context.log(error.message)
-        context.log(`Error when creating resource group ${myQueueItem['resourceGroupName']}`);
+        context.log(`Error when creating vm ${myQueueItem['vmName']}`);
     }
 };
 

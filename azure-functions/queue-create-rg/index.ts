@@ -8,7 +8,7 @@ const queueServiceClient = QueueServiceClient.fromConnectionString(connectionStr
 
 const credentials = new DefaultAzureCredential();
 
-const queueTrigger: AzureFunction = async function (context: Context, myQueueItem: string): Promise<void> {
+const CreateResourceGroup: AzureFunction = async function (context: Context, myQueueItem: string): Promise<void> {
     context.log('Queue trigger function processed work item', myQueueItem);
     //context.log(typeof myQueueItem)
     try {
@@ -20,7 +20,7 @@ const queueTrigger: AzureFunction = async function (context: Context, myQueueIte
         const message = myQueueItem
         const removedOrder = message['queueOrder'].shift();
         message['ordersCompleted'].push(removedOrder)
-        console.log(message)
+        context.log(message)
         const queueClient = queueServiceClient.getQueueClient(message['queueOrder'][0]);
         await queueClient.sendMessage(btoa(JSON.stringify(message)));
     } catch (error) {
@@ -29,4 +29,4 @@ const queueTrigger: AzureFunction = async function (context: Context, myQueueIte
     }
 };
 
-export default queueTrigger;
+export default CreateResourceGroup;

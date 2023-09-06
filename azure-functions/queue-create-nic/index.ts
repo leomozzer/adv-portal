@@ -22,11 +22,11 @@ const CreateNic: AzureFunction = async function (context: Context, myQueueItem: 
                 },
             ],
         };
-        const nic = await networkClient.networkInterfaces.beginCreateOrUpdate(myQueueItem['resourceGroupName'], myQueueItem['nicName'], nicParameters);
+        await networkClient.networkInterfaces.beginCreateOrUpdate(myQueueItem['resourceGroupName'], myQueueItem['nicName'], nicParameters);
         const message = myQueueItem
         const removedOrder = message['queueOrder'].shift();
         message['ordersCompleted'].push(removedOrder)
-        console.log(message)
+        context.log(message)
         const queueClient = queueServiceClient.getQueueClient(message['queueOrder'][0]);
         await queueClient.sendMessage(btoa(JSON.stringify(message)));
     } catch (error) {

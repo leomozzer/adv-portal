@@ -1,6 +1,5 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions";
-import { DefaultAzureCredential } from "@azure/identity";
-import { QueueServiceClient, QueueClient } from "@azure/storage-queue";
+import { QueueServiceClient } from "@azure/storage-queue";
 
 const connectionString = ""; // Replace with your Azure Storage connection string
 
