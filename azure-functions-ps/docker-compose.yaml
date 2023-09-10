@@ -1,0 +1,8 @@
+version: '3.7'
+
+services:
+  myfunction:
+    build:
+      context: .
+    ports:
+      - "7071:80"
