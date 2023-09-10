@@ -30,3 +30,8 @@ variable "network_subnet_cidr" {
   ]
 }
 
+variable "queue_list" {
+  type    = list(string)
+  default = []
+}
+

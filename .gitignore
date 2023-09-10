@@ -38,3 +38,4 @@ terraform.rc
 provider.tf
 backend.tf
 domainjoin.ps1
+*.plan

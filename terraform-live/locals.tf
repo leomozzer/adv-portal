@@ -1,5 +1,6 @@
 locals {
   resource_group_name                                  = "rg-${var.location_short}-${var.app_name}-01"
+  resource_group_name_portal                           = "rg-${var.location_short}-${var.app_name}-portal-01"
   virtual_network_name                                 = "vnet-${var.location_short}-${var.app_name}-01"
   virtual_network_subnet_desktop_name                  = "snet-desktop"
   virtual_desktop_workspace_name                       = "ws-${var.location_short}-${var.app_name}-01"
@@ -8,5 +9,7 @@ locals {
   virtual_desktop_host_pool_registration_info_duration = "24h"
   azurerm_virtual_desktop_application_group_name       = "appgroup-${var.location_short}-${var.app_name}-01"
   avd_key_vault_name                                   = "kv-${var.location_short}-${var.app_name}-01"
-  avd_storage_account_name                             = "sta${var.location_short}${var.app_name}01"
+  avd_storage_account_name                             = "sta${var.location_short}${var.app_name}portal01"
+  service_plan_portal                                  = "appser-${var.location_short}-${var.app_name}-01"
+  function_app                                         = "funcapp-${var.location_short}-${var.app_name}-01"
 }
