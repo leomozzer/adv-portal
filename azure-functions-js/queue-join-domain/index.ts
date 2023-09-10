@@ -7,8 +7,8 @@ import axios from 'axios'
 const credentials = new DefaultAzureCredential();
 
 const domainName = "lsolab.com";
-const domainUser = "ls0-admin@lsolab.com";
-const domainPassword = "j68muqT19hBkYHAJM6Z!0nv#FDqS";
+const domainUser = "";
+const domainPassword = "";
 
 const storageAccountName = "staeusavd01";
 const storageContainerName = "scripts";
