@@ -107,7 +107,7 @@ New-AzWvdWorkspace -Name 'ws-eus-avd-01' -ResourceGroupName $resourceGroupName -
 
 # Create Windows Server 2019
 $vmName = "vm-dc-02"
-$vmSize = "Standard_DS2_v2"  # Choose an appropriate VM size
+$vmSize = "Standard_B2ms"  # Choose an appropriate VM size
 $adminUsername = "ls0-admin"
 $adminPassword = "j68muqT19hBkYHAJM6Z!0nv#FDqS"
 
