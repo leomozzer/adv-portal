@@ -9,7 +9,9 @@ locals {
   virtual_desktop_host_pool_registration_info_duration = "24h"
   azurerm_virtual_desktop_application_group_name       = "appgroup-${var.location_short}-${var.app_name}-01"
   avd_key_vault_name                                   = "kv-${var.location_short}-${var.app_name}-01"
-  avd_storage_account_name                             = "sta${var.location_short}${var.app_name}portal01"
+  avd_storage_account                                  = "sta${var.location_short}${var.app_name}01"
+  avd_storage_account_portal                           = "sta${var.location_short}${var.app_name}portal01"
   service_plan_portal                                  = "appser-${var.location_short}-${var.app_name}-01"
-  function_app                                         = "funcapp-${var.location_short}-${var.app_name}-01"
+  function_app_portal                                  = "funcapp-${var.location_short}-${var.app_name}-01"
+  application_insights_portal                          = "appins-${var.location_short}-${var.app_name}-01"
 }
