@@ -3,20 +3,21 @@ using namespace System.Net
 # Input bindings are passed in via param block.
 param($Request, $TriggerMetadata)
 
-$requestBody = $Request.RawBody  | ConvertFrom-Json
+$requestBody = $Request.RawBody | ConvertFrom-Json
+$locationShort = If (($requestBody.location -split " ").Count -eq 2) {
+    ($requestBody.location -split " ")[0][0] + ($requestBody.location -split " ")[1].Substring(0, 2)
+}
+Else {
+    $requestBody.location.Substring(0, 3)
+}
 
-if (($requestBody.location -split " ").Count -eq 2) {
-    $locationShort = ($requestBody.location -split " ")[0][0] + ($requestBody.location -split " ")[1].Substring(0, 2)
+$resourceGroupName = If ($requestBody.resourceGroupName) {
+    $requestBody.resourceGroupName
 }
-else {
-    $locationShort = $requestBody.location.Substring(0, 3)
+Else {
+    "rg-$($locationShort.ToLower())-$($requestBody.vmName)"
 }
-if ($requestBody.resourceGroupName) {
-    $resourceGroupName = $requestBody.resourceGroupName
-}
-else {
-    $resourceGroupName = "rg-$($locationShort.ToLower())-$($requestBody.vmName)"
-}
+
 switch ($requestBody.actionType) {
     "CreateAzVm" {
         $message = @{
@@ -31,27 +32,27 @@ switch ($requestBody.actionType) {
             "ordersCompleted"             = @()
             "actionType"                  = $requestBody.actionType
         }
+
         # Convert the hashtable to a JSON string
         $jsonMessage = $message | ConvertTo-Json
-        Write-Output $jsonMessage
+
+        # Azure Storage Queue setup
         $queueMessage = [Microsoft.Azure.Storage.Queue.CloudQueueMessage]::new($jsonMessage)
         $context = New-AzStorageContext -StorageAccountName $env:STORAGE_ACCOUNT_NAME -StorageAccountKey $env:STORAGE_ACCOUNT_KEY
-        Write-Output $queueMessage
         $queue = Get-AzStorageQueue -Name $message.queueOrder[0] -Context $context
         $queue.CloudQueue.AddMessage($queueMessage)
+
+        # HTTP response
         $res = [HttpResponseContext] @{
             StatusCode = [System.Net.HttpStatusCode]::OK
             Body       = "Message added to the queue."
         }
-        
-        # Return the response
-        $res
     }
-    "DomainJoin" { 
+    "DomainJoin" {
         $message = @{
             "vmName"                      = $requestBody.vmName
             "location"                    = $requestBody.location
-            "resourceGroupName"           = "rg-$($locationShort.ToLower())-$($requestBody.vmName)"
+            "resourceGroupName"           = $resourceGroupName
             "virtualNetworkResourceGroup" = $requestBody.virtualNetworkResourceGroup
             "virtualNetworkName"          = $requestBody.virtualNetworkName
             "subnetName"                  = $requestBody.subnetName
@@ -60,29 +61,29 @@ switch ($requestBody.actionType) {
             "ordersCompleted"             = @()
             "actionType"                  = $requestBody.actionType
         }
+
         # Convert the hashtable to a JSON string
         $jsonMessage = $message | ConvertTo-Json
-        Write-Output $jsonMessage
+
+        # Azure Storage Queue setup
         $queueMessage = [Microsoft.Azure.Storage.Queue.CloudQueueMessage]::new($jsonMessage)
-        $StorageAccountKey = Get-Item -Path env:StorageAccountKey
         $context = New-AzStorageContext -StorageAccountName "staeusavd01" -StorageAccountKey $env:StorageAccountKey
-        Write-Output $queueMessage
         $queue = Get-AzStorageQueue -Name $message.queueOrder[0] -Context $context
         $queue.CloudQueue.AddMessage($queueMessage)
+
+        # HTTP response
         $res = [HttpResponseContext] @{
             StatusCode = [System.Net.HttpStatusCode]::OK
             Body       = "Message added to the queue."
         }
-        
-        # Return the response
-        $res
     }
     Default {
         $res = [HttpResponseContext] @{
             StatusCode = [System.Net.HttpStatusCode]::OK
             Body       = "Nothing to perform"
         }
-    
-        return $res
     }
 }
+
+# Return the response
+$res
