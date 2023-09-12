@@ -35,7 +35,7 @@ switch ($requestBody.actionType) {
         $jsonMessage = $message | ConvertTo-Json
         Write-Output $jsonMessage
         $queueMessage = [Microsoft.Azure.Storage.Queue.CloudQueueMessage]::new($jsonMessage)
-        $context = New-AzStorageContext -StorageAccountName "staeusavd01" -StorageAccountKey $env:StorageAccountKey
+        $context = New-AzStorageContext -StorageAccountName $env:STORAGE_ACCOUNT_NAME -StorageAccountKey $env:STORAGE_ACCOUNT_KEY
         Write-Output $queueMessage
         $queue = Get-AzStorageQueue -Name $message.queueOrder[0] -Context $context
         $queue.CloudQueue.AddMessage($queueMessage)
@@ -65,7 +65,6 @@ switch ($requestBody.actionType) {
         Write-Output $jsonMessage
         $queueMessage = [Microsoft.Azure.Storage.Queue.CloudQueueMessage]::new($jsonMessage)
         $StorageAccountKey = Get-Item -Path env:StorageAccountKey
-        Write-Output $StorageAccountKey
         $context = New-AzStorageContext -StorageAccountName "staeusavd01" -StorageAccountKey $env:StorageAccountKey
         Write-Output $queueMessage
         $queue = Get-AzStorageQueue -Name $message.queueOrder[0] -Context $context
@@ -83,46 +82,7 @@ switch ($requestBody.actionType) {
             StatusCode = [System.Net.HttpStatusCode]::OK
             Body       = "Nothing to perform"
         }
-        
-        # Return the response
-        $res
+    
+        return $res
     }
 }
-# Create the PowerShell object
-
-
-# Write-Output $message
-
-
-
-# $context = New-AzureStorageContext
-
-# # Return a response
-# $res = [HttpResponseContext] @{
-#     StatusCode = [System.Net.HttpStatusCode]::OK
-#     Body       = "Message added to the queue."
-# }
-
-# # Return the response
-# $res
-
-# # Write to the Azure Functions log stream.
-# Write-Host "PowerShell HTTP trigger function processed a request."
-
-# # Interact with query parameters or the body of the request.
-# $name = $Request.Query.Name
-# if (-not $name) {
-#     $name = $Request.Body.Name
-# }
-
-# $body = "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response."
-
-# if ($name) {
-#     $body = "Hello, $name. This HTTP triggered function executed successfully."
-# }
-
-# # Associate values to output bindings by calling 'Push-OutputBinding'.
-# Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
-#                                     StatusCode = [HttpStatusCode]::OK
-#                                                                          B     ody       = $body
-#                                 })
