@@ -16,6 +16,13 @@ if ($env:MSI_SECRET) {
     Connect-AzAccount -Identity
 }
 
+
+Import-Module "./shared/Storage-Account.psm1"
+Import-Module "./shared/Network-Interface-Card.psm1"
+Import-Module AzTable
+Import-Module Az.Storage
+Import-Module Az.Accounts
+Import-Module Az.Network
 # Uncomment the next line to enable legacy AzureRm alias in Azure PowerShell.
 # Enable-AzureRmAlias
 

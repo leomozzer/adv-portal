@@ -1,16 +1,24 @@
 # Input bindings are passed in via param block.
 param($QueueItem, $TriggerMetadata)
-
-# Write out the queue message and insertion time to the information log.
 Write-Host "PowerShell queue trigger function processed work item: $QueueItem"
+
+Import-Module Az.Accounts
+Import-Module Az.Network
+Import-Module Az.Storage
+Import-Module Az.Compute
+
+$message = foreach ($key in $QueueItem.Keys) {
+    @{ $key = $QueueItem.$Key }
+}
 $message | ConvertTo-Json -Depth 8
 Write-Output $message
 
 # Access and use the hashtable
 $resourceGroupName = $message.resourceGroupName
 $location = $message.location
-$vnetName = $message.virtualNetworkName
 $nicName = $message.nicName
+$subscriptionId = $message.subscriptionId
+$vmName = $message.appName
 
 $vmSize = "Standard_B2ms"  # Choose an appropriate VM size
 $adminUsername = "ls0-admin"
@@ -22,12 +30,14 @@ $credential = New-Object System.Management.Automation.PSCredential ($adminUserna
 # Output some of the values
 Write-Host "Resource Group Name: $resourceGroupName"
 Write-Host "NIC Name: $location"
-$subnet = Get-AzVirtualNetwork -Name $vnetName -ResourceGroupName $resourceGroupName
-$nic = New-AzNetworkInterface -Name $nicName -ResourceGroupName $resourceGroupName -Location $location -SubnetId $subnet.Subnets[0].id
+Set-AzContext -Subscription $subscriptionId
+
+$nic = Get-AzNetworkInterface -Name $nicName -ResourceGroupName $resourceGroupName
 
 $vm = New-AzVMConfig -VMName $vmName -VMSize $vmSize
 $vm = Set-AzVMOperatingSystem -VM $vm -Windows -ComputerName $vmName -Credential $Credential -ProvisionVMAgent -EnableAutoUpdate
 $vm = Add-AzVMNetworkInterface -VM $vm -Id $nic.Id
+$vm = Set-AzVMBootDiagnostic -VM $vm -Enable -ResourceGroupName $resourceGroupName -StorageAccountName "staeusavd01"
 $vm = Set-AzVMSourceImage -VM $vm -PublisherName 'MicrosoftWindowsServer' -Offer 'WindowsServer' -Skus '2022-Datacenter' -Version latest
 
 New-AzVM -ResourceGroupName $resourceGroupName -Location $location -VM $vm
