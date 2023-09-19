@@ -3,46 +3,43 @@ param($QueueItem, $TriggerMetadata)
 
 # Write out the queue message and insertion time to the information log.
 Write-Host "PowerShell queue trigger function processed work item: $QueueItem"
-$message = foreach ($key in $QueueItem.Keys) {
-    @{ $key = $QueueItem.$Key }
+
+try {
+    $getOrder = GetTableRow -storageAccountName $env:STORAGE_ACCOUNT_NAME `
+        -storageAccountKey $env:STORAGE_ACCOUNT_KEY `
+        -tableName "orders" `
+        -columnName "RowKey" `
+        -value $QueueItem `
+        -operator "Equal"
+
+    Write-Output $getOrder
+
+    Set-AzContext -Subscription "$($getOrder.subscriptionId)"
+
+    CreateNic -Name "$($getOrder.appName)" -ResourceGroupName "$($getOrder.resourceGroupName)" -Location "$($getOrder.location)" -VnetName "$($getOrder.virtualNetworkName)" -VirtualNetworkResourceGroup "$($getOrder.virtualNetworkResourceGroup)"
+
+    $getOrder.orderStatus = "Processing"
+    $getOrder.ordersCompleted += If (($getOrder.ordersCompleted.Length -gt 0)) {
+        ",$(($getOrder.queueOrder -split ",")[0])"
+    }
+    else {
+        ($getOrder.queueOrder -split ",")[0]
+    }
+    $getOrder.queueOrder = ($getOrder.queueOrder -split "," | Select-Object -Skip 1) -join ","
+
+    # To commit the change, pipe the updated record into the update cmdlet.
+    $Ctx = New-AzStorageContext -StorageAccountName $env:STORAGE_ACCOUNT_NAME  -StorageAccountKey $env:STORAGE_ACCOUNT_KEY
+          
+    $Table = (Get-AzStorageTable -Name "orders" -Context $ctx).CloudTable  
+    $getOrder | Update-AzTableRow -table $Table
+
+    AddMessage -storageAccountName $env:STORAGE_ACCOUNT_NAME `
+        -storageAccountKey $env:STORAGE_ACCOUNT_KEY `
+        -queueName ($getOrder.queueOrder -split ",")[0] `
+        -message $getOrder.RowKey
 }
-$message | ConvertTo-Json -Depth 8
-Write-Output $message
-$message | ConvertTo-Json -Depth 8
-Write-Output $message
+catch {
+    Write-Host $_.Exception.Message
+}
 
-# Access and use the hashtable
-$resourceGroupName = $message.resourceGroupName
-$virtualNetworkResourceGroup = $message.virtualNetworkResourceGroup
-$location = $message.location
-$vnetName = $message.virtualNetworkName
-$nicName = $message.nicName
-
-# Output some of the values
-Write-Host "Resource Group Name: $resourceGroupName"
-Write-Host "NIC Name: $location"
-
-Import-Module Az.Accounts
-
-$subscription = ""
-# $identity = "c71e4150-de9c-4722-a4d2-e44bb3bbd29d"
-# null = Disable-AzContextAutosave -Scope Process # Ensures you do not inherit an AzContext in your runbook
-# $AzureContext = (Connect-AzAccount -Identity).context 
-Set-AzContext -Subscription $subscription
-
-Import-Module Az.Network
-$subnet = Get-AzVirtualNetwork -Name $vnetName -ResourceGroupName $virtualNetworkResourceGroup
-New-AzNetworkInterface -Name $nicName -ResourceGroupName $resourceGroupName -Location $location -SubnetId $subnet.Subnets[0].id
-
-$completedAction = $message.queueOrder[0]
-$message.queueOrder = $message.queueOrder | Select-Object -Skip 1
-
-# Add the removed item to the ordersCompleted array
-$message.ordersCompleted += $completedAction
-
-$queueMessage = [Microsoft.Azure.Storage.Queue.CloudQueueMessage]::new($message)
-$context = New-AzStorageContext -StorageAccountName $env:STORAGE_ACCOUNT_NAME -StorageAccountKey $env:STORAGE_ACCOUNT_KEY
-Write-Output $queueMessage
-$queue = Get-AzStorageQueue -Name $message.queueOrder[0] -Context $context
-$queue.CloudQueue.AddMessage($queueMessage)
 Write-Host "Queue item insertion time: $($TriggerMetadata.InsertionTime)"
