@@ -21,6 +21,12 @@ resource "azurerm_storage_queue" "queue" {
   storage_account_name = azurerm_storage_account.storage_account_portal.name
 }
 
+resource "azurerm_storage_table" "table" {
+  for_each             = toset(var.table_list)
+  name                 = each.value
+  storage_account_name = azurerm_storage_account.storage_account_portal.name
+}
+
 resource "azurerm_application_insights" "application_insights" {
   name                = local.application_insights_portal
   resource_group_name = azurerm_resource_group.resource_group_portal.name

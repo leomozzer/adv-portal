@@ -35,3 +35,8 @@ variable "queue_list" {
   default = []
 }
 
+variable "table_list" {
+  type    = list(string)
+  default = []
+}
+
