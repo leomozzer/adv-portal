@@ -2,44 +2,64 @@
 param($QueueItem, $TriggerMetadata)
 Write-Host "PowerShell queue trigger function processed work item: $QueueItem"
 
-Import-Module Az.Accounts
-Import-Module Az.Network
-Import-Module Az.Storage
-Import-Module Az.Compute
+try {
+    $getOrder = GetTableRow -storageAccountName $env:STORAGE_ACCOUNT_NAME `
+        -storageAccountKey $env:STORAGE_ACCOUNT_KEY `
+        -tableName "orders" `
+        -columnName "RowKey" `
+        -value $QueueItem `
+        -operator "Equal"
+    
+    Write-Output $getOrder
+    
+    Set-AzContext -Subscription "$($getOrder.subscriptionId)"
 
-$message = foreach ($key in $QueueItem.Keys) {
-    @{ $key = $QueueItem.$Key }
+    $vmSize = "Standard_B2ms"  # Choose an appropriate VM size
+    $adminUsername = "ls0-admin"
+    $adminPassword = "j68muqT19hBkYHAJM6Z!0nv#FDqS"
+    $adminSecurePassword = ConvertTo-SecureString $adminPassword -AsPlainText -Force
+
+    $credential = New-Object System.Management.Automation.PSCredential ($adminUsername, $adminSecurePassword)
+
+    $retryCounter = 0
+    $nic = Get-AzNetworkInterface -Name "nic-$($getOrder.appName)" -ResourceGroupName "$($getOrder.resourceGroupName)"
+    while (!$nic) {
+        if ($retryCounter -eq 5) {
+            break;
+        }
+        Write-Host "Retrying to get Nic"
+        Start-Sleep 10
+        $nic = Get-AzNetworkInterface -Name "nic-$($getOrder.appName)" -ResourceGroupName "$($getOrder.resourceGroupName)"
+    }
+    $vm = New-AzVMConfig -VMName "vm-$($getOrder.appName)" -VMSize $vmSize
+    $vm = Set-AzVMOperatingSystem -VM $vm -Windows -ComputerName "vm-$($getOrder.appName)" -Credential $Credential -ProvisionVMAgent -EnableAutoUpdate
+    $vm = Add-AzVMNetworkInterface -VM $vm -Id $nic.Id
+    $vm = Set-AzVMBootDiagnostic -VM $vm -Enable -ResourceGroupName "$($getOrder.resourceGroupName)" -StorageAccountName "staeusavd01"
+    $vm = Set-AzVMSourceImage -VM $vm -PublisherName 'MicrosoftWindowsServer' -Offer 'WindowsServer' -Skus '2022-Datacenter' -Version latest
+
+    New-AzVM -ResourceGroupName "$($getOrder.resourceGroupName)" -Location "$($getOrder.location)" -VM $vm
+
+    $getOrder.ordersCompleted += If (($getOrder.ordersCompleted.Length -gt 0)) {
+        ",$(($getOrder.queueOrder -split ",")[0])"
+    }
+    else {
+        ($getOrder.queueOrder -split ",")[0]
+    }
+    $getOrder.queueOrder = ($getOrder.queueOrder -split "," | Select-Object -Skip 1) -join ","
+
+    # To commit the change, pipe the updated record into the update cmdlet.
+    $Ctx = New-AzStorageContext -StorageAccountName $env:STORAGE_ACCOUNT_NAME  -StorageAccountKey $env:STORAGE_ACCOUNT_KEY
+          
+    $Table = (Get-AzStorageTable -Name "orders" -Context $ctx).CloudTable  
+    $getOrder | Update-AzTableRow -table $Table
+
+    AddMessage -storageAccountName $env:STORAGE_ACCOUNT_NAME `
+        -storageAccountKey $env:STORAGE_ACCOUNT_KEY `
+        -queueName ($getOrder.queueOrder -split ",")[0] `
+        -message $getOrder.RowKey
 }
-$message | ConvertTo-Json -Depth 8
-Write-Output $message
-
-# Access and use the hashtable
-$resourceGroupName = $message.resourceGroupName
-$location = $message.location
-$nicName = $message.nicName
-$subscriptionId = $message.subscriptionId
-$vmName = $message.appName
-
-$vmSize = "Standard_B2ms"  # Choose an appropriate VM size
-$adminUsername = "ls0-admin"
-$adminPassword = "j68muqT19hBkYHAJM6Z!0nv#FDqS"
-
-$adminSecurePassword = ConvertTo-SecureString $adminPassword -AsPlainText -Force
-$credential = New-Object System.Management.Automation.PSCredential ($adminUsername, $adminSecurePassword)
-
-# Output some of the values
-Write-Host "Resource Group Name: $resourceGroupName"
-Write-Host "NIC Name: $location"
-Set-AzContext -Subscription $subscriptionId
-
-$nic = Get-AzNetworkInterface -Name $nicName -ResourceGroupName $resourceGroupName
-
-$vm = New-AzVMConfig -VMName $vmName -VMSize $vmSize
-$vm = Set-AzVMOperatingSystem -VM $vm -Windows -ComputerName $vmName -Credential $Credential -ProvisionVMAgent -EnableAutoUpdate
-$vm = Add-AzVMNetworkInterface -VM $vm -Id $nic.Id
-$vm = Set-AzVMBootDiagnostic -VM $vm -Enable -ResourceGroupName $resourceGroupName -StorageAccountName "staeusavd01"
-$vm = Set-AzVMSourceImage -VM $vm -PublisherName 'MicrosoftWindowsServer' -Offer 'WindowsServer' -Skus '2022-Datacenter' -Version latest
-
-New-AzVM -ResourceGroupName $resourceGroupName -Location $location -VM $vm
+catch {
+    Write-Host $_.Exception.Message
+}
 
 Write-Host "Queue item insertion time: $($TriggerMetadata.InsertionTime)"
