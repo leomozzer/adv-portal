@@ -36,8 +36,6 @@ $getOrder = GetTableRow -storageAccountName $env:STORAGE_ACCOUNT_NAME `
     -value $orderId `
     -operator "Equal"
 
-
-#$getOrder = $getOrder | ConvertTo-Json -Depth 8
 Write-Host $getOrder
 
 $getOrder.orderStatus = "Processing"
@@ -56,34 +54,4 @@ $Ctx = New-AzStorageContext -StorageAccountName $env:STORAGE_ACCOUNT_NAME  -Stor
   
 $Table = (Get-AzStorageTable -Name "orders" -Context $ctx).CloudTable  
 $getOrder | Update-AzTableRow -table $Table
-
-# $StorageAccountName = $env:STORAGE_ACCOUNT_NAME
-  
-# $Ctx = New-AzStorageContext -StorageAccountName $env:STORAGE_ACCOUNT_NAME  -StorageAccountKey $env:STORAGE_ACCOUNT_KEY
-  
-# $Table = (Get-AzStorageTable -Name "orders" -Context $ctx).CloudTable  
-
-# Write-Host $Table
-  
-# Add-AzTableRow -Table $Table -PartitionKey "PK1" -RowKey "RK12" -property @{"Name" = "John"; "LastName" = "Doe" }
-
-# Start-Sleep 10
-# $Ctx = New-AzStorageContext -StorageAccountName $env:STORAGE_ACCOUNT_NAME  -StorageAccountKey $env:STORAGE_ACCOUNT_KEY
-  
-# $Table = (Get-AzStorageTable -Name "orders" -Context $ctx).CloudTable  
-# $user = Get-AzTableRow -table $Table `
-#     -columnName "Name" `
-#     -value "John" `
-#     -operator Equal
-
-# $user.Name = "Jessie2"
-
-# Start-Sleep 10
-
-# # To commit the change, pipe the updated record into the update cmdlet.
-# $Ctx = New-AzStorageContext -StorageAccountName $env:STORAGE_ACCOUNT_NAME  -StorageAccountKey $env:STORAGE_ACCOUNT_KEY
-  
-# $Table = (Get-AzStorageTable -Name "orders" -Context $ctx).CloudTable  
-# Write-Host $user
-# $user | Update-AzTableRow -table $Table
 
