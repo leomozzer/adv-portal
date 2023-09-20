@@ -31,7 +31,7 @@ switch ($requestBody.actionType) {
             "actionType"                  = $requestBody.actionType
             "resourceGroupName"           = $resourceGroupName
             "environment"                 = "prod"
-            "orderStatus"                 = "Queue"
+            "orderStatus"                 = "Queued"
             "queueOrder"                  = "create-nic,create-azvm,join-domain"
             "ordersCompleted"             = ""
             "location"                    = $requestBody.location
@@ -80,7 +80,7 @@ switch ($requestBody.actionType) {
         # HTTP response
         $res = [HttpResponseContext] @{
             StatusCode = [System.Net.HttpStatusCode]::OK
-            Body       = "Message added to the queue $(($getOrder.queueOrder -split ",")[0])"
+            Body       = "Message added to the queue $(($properties.queueOrder -split ",")[0])"
         }
     }
     # "DomainJoin" {
