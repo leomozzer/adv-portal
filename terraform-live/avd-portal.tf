@@ -3,6 +3,7 @@ resource "azurerm_resource_group" "resource_group_portal" {
   location = var.location
   tags = {
     "Environment" : var.environment
+    "UseCase" : "${var.app_name}portal"
   }
 }
 
