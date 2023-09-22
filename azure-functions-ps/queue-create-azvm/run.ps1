@@ -37,7 +37,13 @@ try {
     $vm = Set-AzVMBootDiagnostic -VM $vm -Enable -ResourceGroupName "$($getOrder.resourceGroupName)" -StorageAccountName "staeusavd01"
     $vm = Set-AzVMSourceImage -VM $vm -PublisherName 'MicrosoftWindowsServer' -Offer 'WindowsServer' -Skus '2022-Datacenter' -Version latest
 
-    New-AzVM -ResourceGroupName "$($getOrder.resourceGroupName)" -Location "$($getOrder.location)" -VM $vm
+    #New-AzVM -ResourceGroupName "$($getOrder.resourceGroupName)" -Location "$($getOrder.location)" -VM $vm
+    $scriptBlock = {
+        param ($Vm, $ResourceGroupName, $Location)
+        New-AzVM -ResourceGroupName $ResourceGroupName -Location $Location -VM $Vm
+    }
+
+    Start-Job -ScriptBlock $scriptBlock -ArgumentList @("vm-$($getOrder.appName)", "$($getOrder.resourceGroupName)", $($getOrder.location))
 
     $getOrder.ordersCompleted += If (($getOrder.ordersCompleted.Length -gt 0)) {
         ",$(($getOrder.queueOrder -split ",")[0])"
